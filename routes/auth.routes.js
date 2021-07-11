@@ -30,13 +30,19 @@ router.post("/validate/email", async (req, res) => {
     else res.status(400).send(`User "${username}" has no email pending verification.`);
 });
 
-router.post("/validate/phone", (req, res) => {
+router.post("/validate/phone", async (req, res) => {
+    const { username, otpCode } = req.body;
+    const pendingVerification = await PhoneValidation.findOne({user: username}).exec();
+    if (pendingVerification) {
+        if (pendingVerification.otpCode === otpCode) {
+            PhoneValidation.findByIdAndDelete(pendingVerification._id).then(finishedVerification => {
+                res.status(200).send(`Thanks, ${finishedVerification.user}! Your phone number has been verified.`);
+            }).catch(error => {
+                res.status(500).send(`Unable to validate phone number for "${username}"`)
+            });
+        }
+        else res.status(400).send("Incorrect One Time Password submitted. Check for typos and try again.")
+    }
+    else res.status(400).send(`User "${username}" has no phone number pending verification.`);
 
 });
-
-
-
-// user phone confirmation ->
-// 	takes username and otpCode (in request body)
-// 	find uservalidation with username
-// 	if otpcode match delete phonevalidation and return 200 w/ message: "your account is successfully confirmed"
