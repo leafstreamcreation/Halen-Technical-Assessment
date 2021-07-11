@@ -46,3 +46,5 @@ router.post("/validate/phone", async (req, res) => {
     else res.status(400).send(`User "${username}" has no phone number pending verification.`);
 
 });
+
+module.exports = router;
