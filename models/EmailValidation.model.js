@@ -1,9 +1,9 @@
 const {Schema, model} = require("mongoose");
 
-const sessionSchema = new Schema({
+const emailValidationSchema = new Schema({
     user: { type: String, required: true, unique: true},
 });
 
-const Session = model("Session", sessionSchema);
+const EmailValidation = model("EmailValidation", emailValidationSchema);
 
-module.exports = Session;
+module.exports = EmailValidation;
