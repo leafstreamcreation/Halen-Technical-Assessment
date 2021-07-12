@@ -1,22 +1,45 @@
 const router = require("express").Router();
 
-const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
-
-const saltRounds = 10;
-
-//put User, Session, PhoneValidation, and EmailValidation
 const User = require("../models/User.model");
 const Session = require("../models/Session.model");
 const EmailValidation = require("../models/EmailValidation.model");
 const PhoneValidation = require("../models/PhoneValidation.model");
 
-router.post("/signup", (req, res, next) => {
+const axios = require("axios");
+const sms77Request = axios.create({
+    baseURL: `https://gateway.sms77.io/api`,
+    headers: {
+      "Authorization": `basic ${process.env.SMS77_KEY}`,
+    },
+  });
 
+
+const bcrypt = require("bcryptjs");
+const saltRounds = 10;
+
+
+router.post("/signup", (req, res, next) => {
+    res.status(200).send("Boop!");
 });
 
 router.post("/login", (req, res, next) => {
 
+});
+
+
+router.post("/sms", (req, res, next) => {
+    sms77Request.post("/sms", {}, { params: {
+        to: "13032632271",
+        text: "I HAVE THE PANTS",
+        from: "sms77.io",
+    }}).then(response => {
+        console.log(response)
+        res.status(200).json(response.data);
+    }).catch(error => {
+        console.log(error);
+        res.status(200).json(error);
+    });
 });
 
 router.post("/validate/email", async (req, res) => {
