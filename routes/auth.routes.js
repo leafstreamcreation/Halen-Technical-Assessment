@@ -3,6 +3,7 @@ const router = require("express").Router();
 const mongoose = require("mongoose");
 const User = require("../models/User.model");
 const Session = require("../models/Session.model");
+const SESSION_EXPIRATION = 1000 * 60 * 30; //Sessions live for 30 minutes
 const EmailValidation = require("../models/EmailValidation.model");
 const PhoneValidation = require("../models/PhoneValidation.model");
 
@@ -12,7 +13,9 @@ const sms77Request = axios.create({
     headers: {
       "Authorization": `basic ${process.env.SMS77_KEY}`,
     },
-  });
+});
+
+const { mailTransporter, confirmationEmail } = require("../config/email");
 
 
 const bcrypt = require("bcryptjs");
@@ -46,13 +49,21 @@ router.post("/signup", (req, res, next) => {
                 phonenumber,
             });
         })
-        .then((user) => res.status(201).json({ 
-            userId: user._id, 
-            username: user.username, 
-            password: password, 
-            email: user.email, 
-            phonenumber: user.phonenumber
-        }))
+        .then((user) => {
+            mailTransporter.sendMail(confirmationEmail(user.username, user.email))
+            .then(_ => {
+                console.log("Email sent");
+                EmailValidation.create({user: user.username}).then(_ => console.log("Validation created"));
+            });
+            
+            return res.status(201).json({ 
+                userId: user._id, 
+                username: user.username, 
+                password: password, 
+                email: user.email, 
+                phonenumber: user.phonenumber
+            });
+        })
         .catch((error) => {
             if (error instanceof mongoose.Error.ValidationError) return res.status(400).send(`${error.message}`);
             else return res.status(500).send(`${error.message}`);
@@ -72,13 +83,12 @@ router.post("/login", (req, res, next) => {
     User.findOne({ username })
     .then((user) => {
         if (!user) return res.status(400).send(`User "${username}" not found`);
-    
-        bcrypt.compare(password, user.passhash).then((isSamePassword) => {
+        else bcrypt.compare(password, user.passhash).then((isSamePassword) => {
             if (!isSamePassword) return res.status(400).send("Wrong password");
-            else Session.create({ user: user._id, createdAt: Date.now() })
+            else Session.create({ user: user._id, expires: new Date(Date.now() + SESSION_EXPIRATION) })
             .then( (session) => {
                 console.log(session);
-                return res.json({ token: session._id, createdAt: session.createdAt });
+                return res.json({ token: session._id, expires: session.expires });
             });
         });
     })

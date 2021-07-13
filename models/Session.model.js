@@ -3,12 +3,9 @@ const ObjectId = Schema.Types.ObjectId;
 
 const sessionSchema = new Schema({
     user: { type: ObjectId, ref: "User"},
-    createdAt: {
-      type: Date,
-      default: Date.now(),
-      index: { expires: 1000 * 60 * 30 }, // 30 minutes for session
-    },
+    expires: Date,
 });
+sessionSchema.index({expires: 1}, { expireAfterSeconds: 0 });
 
 const Session = model("Session", sessionSchema);
 
