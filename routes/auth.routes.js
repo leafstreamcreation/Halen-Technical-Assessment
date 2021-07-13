@@ -21,6 +21,12 @@ const { mailTransporter, confirmationEmail } = require("../config/email");
 const bcrypt = require("bcryptjs");
 const saltRounds = 10;
 
+function createOTP() {
+    //generate 5 digit number
+    return Math.floor(Math.random() * 100000);
+}
+
+
 
 router.post("/signup", (req, res, next) => {
     const { username, password, email, phonenumber } = req.body;
@@ -50,11 +56,23 @@ router.post("/signup", (req, res, next) => {
             });
         })
         .then((user) => {
-            EmailValidation.create({user: user.username}).then(validation => {
+            EmailValidation.create({user: user.username})
+            .then(validation => {
                 mailTransporter.sendMail(confirmationEmail(user.username, validation._id, user.email))
                 .then(_ => {
                     console.log("Email sent");
                 });
+            });
+
+            PhoneValidation.create({user: user.username, otpCode: createOTP()})
+            .then(validation => {
+                sms77Request.post("/sms", {}, { 
+                    params: {
+                    to: user.phonenumber,
+                    text: `Welcome to Halen! Your one time password is:\n${validation.otpCode}`,
+                }})
+                .then(response => console.log(response.data))
+                .catch(error => console.log(error));
             });
             
             return res.status(201).json({ 
@@ -71,6 +89,7 @@ router.post("/signup", (req, res, next) => {
         });
     });
 });
+
 
 router.post("/login", (req, res, next) => {
     const { username, password } = req.body;
@@ -99,19 +118,6 @@ router.post("/login", (req, res, next) => {
 });
 
 
-router.post("/sms", (req, res, next) => {
-    sms77Request.post("/sms", {}, { params: {
-        to: "13032632271",
-        text: "I HAVE THE PANTS",
-    }}).then(response => {
-        console.log(response);
-        res.status(200).json(response.data);
-    }).catch(error => {
-        console.log(error);
-        res.status(200).json(error);
-    });
-});
-
 router.get("/email/:id/confirmation", async (req, res) => {
     const pendingVerification = await EmailValidation.findById(req.params.id).exec();
     if (pendingVerification) EmailValidation.findByIdAndDelete(pendingVerification._id).then(finishedVerification => {
@@ -122,13 +128,14 @@ router.get("/email/:id/confirmation", async (req, res) => {
     else res.status(400).send(`User "${username}" has no email pending verification.`);
 });
 
+
 router.post("/phone/confirmation", async (req, res) => {
     const { username, otpCode } = req.body;
     const pendingVerification = await PhoneValidation.findOne({user: username}).exec();
     if (pendingVerification) {
-        if (pendingVerification.otpCode === otpCode) {
+        if (pendingVerification.otpCode === Number(otpCode)) {
             PhoneValidation.findByIdAndDelete(pendingVerification._id).then(finishedVerification => {
-                res.status(200).send(`Thanks, ${finishedVerification.user}! Your phone number has been verified.`);
+                res.status(200).send(`Your account is successfully confirmed`);
             }).catch(error => {
                 res.status(500).send(`Unable to validate phone number for "${username}"`)
             });

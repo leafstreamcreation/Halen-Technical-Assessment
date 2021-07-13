@@ -13,7 +13,6 @@ const confirmationEmail = (username, id, email) => {
         from: `Derek Noble <${process.env.HOST_EMAIL}>`,
         to: `${email}`,
         subject: 'your Halen Email confirmation',
-        //redo form as link with email validation id urlparam
         html: `<body>
             <h1>Hello, ${username}!</h1>
             <p>Welcome to the Halen technical assessment. Press to confirm your email account</p>
