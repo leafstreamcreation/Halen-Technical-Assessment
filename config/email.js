@@ -8,18 +8,16 @@ const mailTransporter = nodemailer.createTransport({
     }
 });
 
-const confirmationEmail = (username, email) => {
+const confirmationEmail = (username, id, email) => {
     return {
         from: `Derek Noble <${process.env.HOST_EMAIL}>`,
         to: `${email}`,
         subject: 'your Halen Email confirmation',
+        //redo form as link with email validation id urlparam
         html: `<body>
             <h1>Hello, ${username}!</h1>
             <p>Welcome to the Halen technical assessment. Press to confirm your email account</p>
-            <form action=${process.env.APPLICATION_URL}/auth/validate/email method="post">
-                <input type="text" name="username" value="${username}" hidden>
-                <input type="submit" value="Confirm">
-            </form>
+            <a href="${process.env.APPLICATION_URL}/auth/email/${id}/confirmation">Confirm</a>
         </body>`,
     };
 };

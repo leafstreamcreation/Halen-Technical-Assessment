@@ -50,10 +50,11 @@ router.post("/signup", (req, res, next) => {
             });
         })
         .then((user) => {
-            mailTransporter.sendMail(confirmationEmail(user.username, user.email))
-            .then(_ => {
-                console.log("Email sent");
-                EmailValidation.create({user: user.username}).then(_ => console.log("Validation created"));
+            EmailValidation.create({user: user.username}).then(validation => {
+                mailTransporter.sendMail(confirmationEmail(user.username, validation._id, user.email))
+                .then(_ => {
+                    console.log("Email sent");
+                });
             });
             
             return res.status(201).json({ 
@@ -111,9 +112,8 @@ router.post("/sms", (req, res, next) => {
     });
 });
 
-router.post("/validate/email", async (req, res) => {
-    const { username } = req.body;
-    const pendingVerification = await EmailValidation.findOne({user: username}).exec();
+router.get("/email/:id/confirmation", async (req, res) => {
+    const pendingVerification = await EmailValidation.findById(req.params.id).exec();
     if (pendingVerification) EmailValidation.findByIdAndDelete(pendingVerification._id).then(finishedVerification => {
         res.status(200).send(`Thanks, ${finishedVerification.user}! Your email has been verified.`);
     }).catch(error => {
@@ -122,7 +122,7 @@ router.post("/validate/email", async (req, res) => {
     else res.status(400).send(`User "${username}" has no email pending verification.`);
 });
 
-router.post("/validate/phone", async (req, res) => {
+router.post("/phone/confirmation", async (req, res) => {
     const { username, otpCode } = req.body;
     const pendingVerification = await PhoneValidation.findOne({user: username}).exec();
     if (pendingVerification) {
